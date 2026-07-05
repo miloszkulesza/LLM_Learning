@@ -3,7 +3,6 @@ import ollama
 from scraper import fetch_website_links, fetch_website_contents
 
 MODEL = "gpt-oss"
-links = fetch_website_links("https://edwarddonner.com")
 
 link_system_prompt = """
 You are provided with a list of links found on a webpage.
@@ -71,7 +70,7 @@ def get_brochure_user_prompt(company_name, url):
     user_prompt = f"""
 You are looking at a company called: {company_name}
 Here are the contents of its landing page and other relevant pages;
-use this information to build a short brochure of the company in markdown without code blocks.\n\n
+use this information to build a short brochure of the company in markdown without code blocks. Create brochure in polish.\n\n
 """
     user_prompt += fetch_page_and_all_relevant_links(url)
     user_prompt = user_prompt[:5_000]
@@ -87,8 +86,8 @@ def create_brochure(company_name, url):
         ],
     )
     result = response['message']['content']
-    with open("brochure.md", "w", encoding="utf-8") as file:
+    with open("brochure2.md", "w", encoding="utf-8") as file:
         file.write(result)
-    print("Saved brochure to brochure.md")
+    print("Saved brochure to brochure2.md")
 
 create_brochure("devTEC", "https://www.devtec.pl")
