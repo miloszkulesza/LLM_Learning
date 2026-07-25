@@ -111,4 +111,4 @@ output_filename = "meeting_minutes.md"
 with open(output_filename, "w", encoding="utf-8") as f:
     f.write(response)
 
-print(f"\nZapisano wynik do pliku: {output_filename}")
+print(f"\nOutput saved to file: {output_filename}")
