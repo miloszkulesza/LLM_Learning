@@ -179,6 +179,6 @@ def compile_and_run():
 print("Running")
 run_python(pi)
 print("Porting...")
-port(openai, MODEL, pi)
+port(openai)
 print("Compiling...")
 compile_and_run()
