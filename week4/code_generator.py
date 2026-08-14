@@ -140,7 +140,7 @@ def write_output(cpp):
     with open("main.cpp", "w", encoding="utf-8") as f:
         f.write(cpp)
 
-def port(client, model, python):
+def port(python):
     print(f"Calling LLM: {messages_for(python)}")
     reply = send_prompt(messages_for(python))
     reply = reply.replace('```cpp','').replace('```','')
