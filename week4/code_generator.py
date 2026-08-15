@@ -4,8 +4,11 @@ import subprocess
 from pathlib import Path
 import shutil
 import os
+import sys
+import gradio as gr
+import io
 
-MODEL = "qwen2.5-coder:3b"
+models = ["qwen2.5-coder", "deepseek-coder-v2", "gpt-oss:20b"]
 openai = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
 
 def setup_msvc():
@@ -36,27 +39,8 @@ def setup_msvc():
 setup_msvc()
 system_info = retrieve_system_info()
 
-message = f"""
-Here is a report of the system information for my computer.
-I want to run a C++ compiler to compile a single C++ file called main.cpp and then execute it in the simplest way possible.
-Please reply with whether I need to install any C++ compiler to do this. If so, please provide the simplest step by step instructions to do so.
-
-If I'm already set up to compile C++ code, then I'd like to run something like this in Python to compile and execute the code:
-```python
-compile_command = # something here - to achieve the fastest possible runtime performance
-compile_result = subprocess.run(compile_command, check=True, text=True, capture_output=True)
-run_command = # something here
-run_result = subprocess.run(run_command, check=True, text=True, capture_output=True)
-return run_result.stdout
-```
-Please tell me exactly what I should use for the compile_command and run_command.
-
-System information:
-{system_info}
-"""
-
-def send_prompt(messages):
-    stream = openai.chat.completions.create(model=MODEL, messages=messages, stream=True)
+def send_prompt(model, messages):
+    stream = openai.chat.completions.create(model=model, messages=messages, stream=True)
     full_response = ""
     is_thinking = False
     full_thinking = ""
@@ -79,10 +63,6 @@ def send_prompt(messages):
             full_response += content
     return full_response
 
-messages = [{"role": "user", "content": message}]
-print(f"Calling LLM: {message}")
-send_prompt(messages)
-
 compile_command = [
     "cl.exe",
     "/nologo",
@@ -100,19 +80,8 @@ run_command = [str(Path.cwd() / "main.exe")]
 
 system_prompt = """
 Your task is to convert Python code into high performance C++ code.
-
-STRICT OUTPUT RULES:
-- Output ONLY valid C++ source code.
-- Do NOT use Markdown.
-- Do NOT use ```cpp or ``` fences.
-- Do NOT provide explanations.
-- Do NOT provide compilation commands.
-- Do NOT write any text before or after the C++ source code.
-- The first non-whitespace characters of your response must be valid C++ code.
-- The output must compile as-is when saved directly to main.cpp.
-
-The C++ program must produce output equivalent to the Python program.
-Optimize primarily for runtime performance.
+Respond only with C++ code. Do not provide any explanation other than occasional comments.
+The C++ response needs to produce an identical output in the fastest possible time.
 """
 
 def user_prompt_for(python):
@@ -122,7 +91,7 @@ The system information is:
 {system_info}
 Your response will be written to a file called main.cpp and then compiled and executed; the compilation command is:
 {compile_command}
-Respond only with C++ code.
+Respond only with C++ code. Without any comments, explainantios - just code.
 Python code to port:
 
 ```python
@@ -140,11 +109,12 @@ def write_output(cpp):
     with open("main.cpp", "w", encoding="utf-8") as f:
         f.write(cpp)
 
-def port(python):
+def port(model, python):
     print(f"Calling LLM: {messages_for(python)}")
-    reply = send_prompt(messages_for(python))
+    reply = send_prompt(model, messages_for(python))
     reply = reply.replace('```cpp','').replace('```','')
     write_output(reply)
+    return reply
 
 pi = """
 import time
@@ -167,18 +137,56 @@ print(f"Execution Time: {(end_time - start_time):.6f} seconds")
 """
 
 def run_python(code):
-    globals = {"__builtins__": __builtins__}
-    exec(code, globals)
+    globals_dict = {"__builtins__": __builtins__}
+
+    buffer = io.StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = buffer
+
+    try:
+        exec(code, globals_dict)
+        output = buffer.getvalue()
+    except Exception as e:
+        output = f"Error: {e}"
+    finally:
+        sys.stdout = old_stdout
+
+    return output
 
 def compile_and_run():
-    subprocess.run(compile_command, check=True, text=True, capture_output=True, shell=True)
-    print(subprocess.run(run_command, check=True, text=True, capture_output=True, shell=True).stdout)
-    print(subprocess.run(run_command, check=True, text=True, capture_output=True, shell=True).stdout)
-    print(subprocess.run(run_command, check=True, text=True, capture_output=True, shell=True).stdout)
+    try:
+        subprocess.run(compile_command, check=True, text=True, capture_output=True)
 
-print("Running")
-run_python(pi)
-print("Porting...")
-port(openai)
-print("Compiling...")
-compile_and_run()
+        output = subprocess.run(run_command, check=True, text=True, capture_output=True).stdout
+        full_output = ''
+        full_output += output
+        print(output)
+
+        output = subprocess.run(run_command, check=True, text=True, capture_output=True).stdout
+        full_output += '\n' + output
+        print(output)
+
+        output = subprocess.run(run_command, check=True, text=True, capture_output=True).stdout
+        full_output += '\n' + output
+        print(output)
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred:\n{e.stderr}")
+        return ""
+
+    return full_output
+
+with gr.Blocks() as ui:
+    with gr.Row():
+        python = gr.Textbox(label="Python code:", lines=28, value=pi)
+        cpp = gr.Textbox(label="C++ code:", lines=28)
+    with gr.Row():
+        model = gr.Dropdown(models, label="Select model", value=models[0])
+        convert = gr.Button("Convert code")
+        compile = gr.Button("Compile and run C++")
+    with gr.Row():
+        output = gr.Label(label="Result:")
+
+    convert.click(port, inputs=[model, python], outputs=[cpp])
+    compile.click(compile_and_run, outputs=[output])
+
+ui.launch(inbrowser=True)
