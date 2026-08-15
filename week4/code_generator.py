@@ -79,9 +79,16 @@ compile_command = [
 run_command = [str(Path.cwd() / "main.exe")]
 
 system_prompt = """
-Your task is to convert Python code into high performance C++ code.
-Respond only with C++ code. Do not provide any explanation other than occasional comments.
-The C++ response needs to produce an identical output in the fastest possible time.
+You are an expert C++ performance engineer.
+Convert the provided Python program into high-performance C++20.
+
+Requirements:
+- Preserve the observable output and behavior of the Python program.
+- Optimize for execution speed.
+- Target the provided hardware and MSVC compiler.
+- Return only valid C++ source code.
+- Do not use Markdown code fences.
+- Do not include explanations or comments.
 """
 
 def user_prompt_for(python):
@@ -91,7 +98,7 @@ The system information is:
 {system_info}
 Your response will be written to a file called main.cpp and then compiled and executed; the compilation command is:
 {compile_command}
-Respond only with C++ code. Without any comments, explainantios - just code.
+Respond only with C++ code.
 Python code to port:
 
 ```python
@@ -136,23 +143,6 @@ print(f"Result: {result:.12f}")
 print(f"Execution Time: {(end_time - start_time):.6f} seconds")
 """
 
-def run_python(code):
-    globals_dict = {"__builtins__": __builtins__}
-
-    buffer = io.StringIO()
-    old_stdout = sys.stdout
-    sys.stdout = buffer
-
-    try:
-        exec(code, globals_dict)
-        output = buffer.getvalue()
-    except Exception as e:
-        output = f"Error: {e}"
-    finally:
-        sys.stdout = old_stdout
-
-    return output
-
 def compile_and_run():
     try:
         subprocess.run(compile_command, check=True, text=True, capture_output=True)
@@ -171,7 +161,7 @@ def compile_and_run():
         print(output)
     except subprocess.CalledProcessError as e:
         print(f"An error occurred:\n{e.stderr}")
-        return ""
+        return f"Compilation/execution failed:\n{e.stderr}"
 
     return full_output
 
