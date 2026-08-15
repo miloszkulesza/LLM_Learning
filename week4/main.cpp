@@ -1,26 +1,31 @@
-
 #include <iostream>
+#include <iomanip>
 #include <chrono>
-
-double calculate(int iterations, double param1, double param2) {
-    double result = 1.0;
-    for (int i = 1; i <= iterations; ++i) {
-        double j = i * param1 - param2;
-        result -= (1 / j);
-        j = i * param1 + param2;
-        result += (1 / j);
-    }
-    return result;
-}
+#include <cstdint>
 
 int main() {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    double result = calculate(200000000, 4, 1) * 4;
-    auto end_time = std::chrono::high_resolution_clock::now();
+    const std::uint64_t iterations = 200'000'000;
+    const double param1 = 4.0;
+    const double param2 = 1.0;
+    double result = 1.0;
 
-    std::chrono::duration<double> elapsed_time = end_time - start_time;
-    std::cout << "Result: " << result << std::endl;
-    std::cout << "Execution Time: " << elapsed_time.count() << " seconds" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (std::uint64_t i = 1; i <= iterations; ++i) {
+        double j = i * param1 - param2;
+        result -= 1.0 / j;
+        j = i * param1 + param2;
+        result += 1.0 / j;
+    }
+
+    result *= 4.0;
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    std::cout.setf(std::ios::fixed);
+    std::cout << std::setprecision(12) << "Result: " << result << '\n';
+    std::cout << std::setprecision(6) << "Execution Time: " << elapsed.count() << " seconds\n";
 
     return 0;
 }

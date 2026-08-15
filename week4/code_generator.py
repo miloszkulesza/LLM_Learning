@@ -4,9 +4,8 @@ import subprocess
 from pathlib import Path
 import shutil
 import os
-import sys
 import gradio as gr
-import io
+from styles import CSS
 
 models = ["qwen2.5-coder", "deepseek-coder-v2", "gpt-oss:20b"]
 openai = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
@@ -165,16 +164,18 @@ def compile_and_run():
 
     return full_output
 
-with gr.Blocks() as ui:
-    with gr.Row():
-        python = gr.Textbox(label="Python code:", lines=28, value=pi)
-        cpp = gr.Textbox(label="C++ code:", lines=28)
-    with gr.Row():
+with gr.Blocks(css=CSS, theme=gr.themes.Monochrome(), title=f"Port from Python to C++") as ui:
+    with gr.Row(equal_height=True):
+        with gr.Column(scale=6):
+            python = gr.Code(label="Python code:", language="python", lines=26, value=pi)
+        with gr.Column(scale=6):
+            cpp = gr.Code(label="C++ code:", language="cpp", lines=28)
+    with gr.Row(elem_classes=["controls"]):
         model = gr.Dropdown(models, label="Select model", value=models[0])
-        convert = gr.Button("Convert code")
-        compile = gr.Button("Compile and run C++")
-    with gr.Row():
-        output = gr.Textbox(label="Result:", lines=10)
+        convert = gr.Button("Convert code", elem_classes=["convert-btn"])
+        compile = gr.Button("Compile and run C++", elem_classes=["run-btn", "cpp"])
+    with gr.Row(equal_height=True):
+        output = gr.TextArea(label="Result:", lines=8, elem_classes=["cpp-out"])
 
     convert.click(port, inputs=[model, python], outputs=[cpp])
     compile.click(compile_and_run, outputs=[output])
