@@ -174,7 +174,7 @@ with gr.Blocks() as ui:
         convert = gr.Button("Convert code")
         compile = gr.Button("Compile and run C++")
     with gr.Row():
-        output = gr.Label(label="Result:")
+        output = gr.Textbox(label="Result:", lines=10)
 
     convert.click(port, inputs=[model, python], outputs=[cpp])
     compile.click(compile_and_run, outputs=[output])
