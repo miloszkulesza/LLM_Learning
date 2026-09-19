@@ -1,4 +1,3 @@
-import os
 import glob
 from pathlib import Path
 import gradio as gr
@@ -15,18 +14,12 @@ for filename in filenames:
     with open(filename, "r", encoding="utf-8") as f:
         knowledge[name.lower()] = f.read()
 
-print(knowledge["lancaster"])
-print('=====================================')
-
 filenames = glob.glob("knowledge-base/products/*")
 
 for filename in filenames:
     name = Path(filename).stem
     with open(filename, "r", encoding="utf-8") as f:
         knowledge[name.lower()] = f.read()
-
-print(knowledge.keys())
-print('=====================================')
 
 SYSTEM_PREFIX = """
 You represent Insurellm, the Insurance Tech company.
@@ -42,11 +35,6 @@ def get_relevant_context(message):
     words = text.lower().split()
     return [knowledge[word] for word in words if word in knowledge]
 
-print(get_relevant_context("Who is lancaster?"))
-print('=====================================')
-print(get_relevant_context("Who is Lancaster and what is carllm?"))
-print('=====================================')
-
 def additional_context(message):
     relevant_context = get_relevant_context(message)
     if not relevant_context:
@@ -55,9 +43,6 @@ def additional_context(message):
         result = "The following additional context might be relevant in answering the user's question:\n\n"
         result += "\n\n".join(relevant_context)
     return result
-
-print(additional_context("Who is Alex Lancaster?"))
-print('=====================================')
 
 def chat(message, history):
     system_message = SYSTEM_PREFIX + additional_context(message)
